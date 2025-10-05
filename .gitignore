@@ -1,0 +1,18 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# self environments
+.env
+
+# insurance docs
+insurance-docs/
+processed-docs/
+map.json
