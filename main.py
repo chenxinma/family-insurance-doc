@@ -5,6 +5,7 @@ from pathlib import Path
 
 from pdf_converter import PDFToTxtConverter
 from insurance_agent import InsuranceAgent
+from abstract_agent import AbstractAgent
 
 
 def main():
@@ -18,6 +19,11 @@ def main():
         "--question", 
         action="store_true", 
         help="向保险文档提问"
+    )
+    parser.add_argument(
+        "--abstract", 
+        action="store_true", 
+        help="生成文档摘要并更新map.json"
     )
     
     args = parser.parse_args()
@@ -36,6 +42,10 @@ def main():
         # 创建保险代理并回答问题
         agent = InsuranceAgent(map_file, output_directory)
         agent.agent.to_cli_sync()
+    elif args.abstract:
+        # 创建摘要代理并处理所有文档
+        agent = AbstractAgent(map_file, output_directory)
+        asyncio.run(agent.process_all_documents())
     else:
         parser.print_help()
 

@@ -22,3 +22,12 @@
 ## 模块设计
 PDFToTxtConverter类封装pdf文本提取相关功能
 建立InsuranceAgent类实现命令行问答
+
+## 运行
+```bash
+uv run main.py [--convert] [--question] [--abstract]
+```
+pdf转换txt示例：
+```bash
+uv run main.py --convert
+```
