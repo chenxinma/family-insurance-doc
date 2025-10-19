@@ -1,12 +1,17 @@
 
 import argparse
 import asyncio
-from pathlib import Path
+from datetime import datetime
 
+from pydantic_ai import ModelMessage
+
+from agent2cli import to_cli_sync
 from pdf_converter import PDFToTxtConverter
 from insurance_agent import InsuranceAgent
 from abstract_agent import AbstractAgent
+from reflector_agent import ReflectorAgent
 
+reflector_agent = ReflectorAgent()
 
 def main():
     parser = argparse.ArgumentParser(description="家庭保险文档处理工具")
@@ -40,8 +45,8 @@ def main():
         print("PDF转换完成")
     elif args.question:
         # 创建保险代理并回答问题
-        agent = InsuranceAgent(map_file, output_directory)
-        agent.agent.to_cli_sync()
+        agent = InsuranceAgent(map_file, output_directory)     
+        to_cli_sync(agent.agent, handle_after_conversation=handle_after_conversation)
     elif args.abstract:
         # 创建摘要代理并处理所有文档
         agent = AbstractAgent(map_file, output_directory)
@@ -49,6 +54,12 @@ def main():
     else:
         parser.print_help()
 
+async def handle_after_conversation(messages: list[ModelMessage]):
+    """处理每次对话后的消息"""
+    result = await reflector_agent.reflect(messages)
+    with open(f"./reflector/{datetime.now().strftime('%Y%m%d%H%M%S')}.json", "w", encoding="utf-8") as f:
+        f.write(result.model_dump_json(indent=2, ensure_ascii=False))
+    
 
 if __name__ == "__main__":
     main()

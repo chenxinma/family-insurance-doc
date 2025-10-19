@@ -15,4 +15,6 @@ wheels/
 # insurance docs
 insurance-docs/
 processed-docs/
+playbook/
+reflector/
 map.json

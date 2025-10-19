@@ -1,11 +1,9 @@
 import json
 from pathlib import Path
-from typing import Dict, Any
 from pydantic_ai import Agent
 import ripgrepy
 
 from qwen_models import qwen
-
 
 class InsuranceAgent:
     """

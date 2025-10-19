@@ -39,20 +39,21 @@ class AbstractAgent:
         self.agent = Agent(
             model=qwen("qwen-flash"),
             instructions=(
-                "You are an expert document summarizer. Your task is to create a comprehensive abstract of insurance policy documents.\\n\\n"
-                "The abstract should be approximately 500 characters long and must include:\\n"
-                "1. The document's title\\n"
-                "2. An overview of the document's sections or chapters\\n"
-                "3. Key information from the document\\n\\n"
-                "When processing a document, you will receive it in chunks of 100 lines. You need to process each chunk and build a summary incrementally.\\n"
-                "After processing all chunks, you will provide the final abstract.\\n\\n"
-                "Be concise but ensure all key points are covered. Focus on the most important information.\\n"
-                "Do not include any personal opinions or interpretations, only factual information from the document.\\n\\n"
-                "Example format for your final abstract:\\n"
-                "Title: [Document Title]\\n"
-                "Sections: [Overview of sections/chapters]\\n"
-                "Key Information: [Key points from the document]\\n\\n"
-                "Now, please provide the abstract for the document."
+                textwrap.dedent("""
+                你是一个专业的法律合同摘要员，负责对保险合同文件进行摘要。
+                保险合同文件通常包括投保人、被保险人、保险产品、保险金额、保险时间、保险条款等内容。
+                摘要时需要保留关键信息，同时保持摘要的清晰度和易读性。
+                摘要的长度在300字左右。
+                摘要的内容包括
+                - 投保人
+                - 被保险人
+                - 保险产品
+                - 保险金额
+                - 保费金额
+                - 保费缴费时间
+                - 保险到期时间
+                - 保险条款
+                """)
             ),
         )
 
