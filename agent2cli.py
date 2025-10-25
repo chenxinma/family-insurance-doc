@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import ExitStack
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Coroutine, Sequence
+from typing import Any, Callable, Coroutine, Sequence
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory, Suggestion
@@ -18,8 +18,12 @@ from rich.text import Text
 
 from pydantic_ai import Agent, ModelMessage, ModelResponse
 
+from playbook import PlaybookOperator
+
 PYDANTIC_AI_HOME = Path.home() / '.pydantic-ai'
 PROMPT_HISTORY_FILENAME = 'prompt-history.txt'
+
+HandleAfterConversation = Callable[[str, list[ModelMessage]], Coroutine[None, Any, None]]
 
 class CustomAutoSuggest(AutoSuggestFromHistory):
     def __init__(self, special_suggestions: list[str] | None = None):
@@ -48,11 +52,12 @@ def get_event_loop():
 async def run_chat(
     stream: bool,
     agent: Agent,
+    playbook_operator: PlaybookOperator,
     console: Console,
     code_theme: str,
     prog_name: str,
     config_dir: Path | None = None,
-    handle_after_conversation: Callable[[list[ModelMessage]], Coroutine[None, Any, None]] | None = None,
+    handle_after_conversation: HandleAfterConversation | None = None,
 ) -> int:
     prompt_history_path = (config_dir or PYDANTIC_AI_HOME) / PROMPT_HISTORY_FILENAME
     prompt_history_path.parent.mkdir(parents=True, exist_ok=True)
@@ -79,7 +84,8 @@ async def run_chat(
                 return exit_value
         else:
             try:
-                messages = await ask_agent(agent, text, stream, console, code_theme, messages)
+                prompt = f"执行策略：{playbook_operator.list_policies()}\n\n{text}"
+                messages = await ask_agent(agent, prompt, stream, console, code_theme, messages)
             except asyncio.CancelledError:  # pragma: no cover
                 console.print('[dim]Interrupted[/dim]')
             except Exception as e:  # pragma: no cover
@@ -90,7 +96,7 @@ async def run_chat(
             finally:
                 if handle_after_conversation:
                     # 异步执行，不等待完成
-                    asyncio.create_task(handle_after_conversation(messages))
+                    asyncio.create_task(handle_after_conversation(text, messages))
 
 async def ask_agent(
     agent: Agent,
@@ -99,7 +105,7 @@ async def ask_agent(
     console: Console,
     code_theme: str,
     messages: Sequence[ModelMessage] | None = None,
-    handle_after_conversation: Callable[[list[ModelMessage]], Coroutine[None, Any, None]] | None = None,    
+    handle_after_conversation: HandleAfterConversation | None = None,    
 ) -> list[ModelMessage]:
     status = Status('[dim]Working on it…[/dim]', console=console)
 
@@ -126,18 +132,19 @@ async def ask_agent(
         return agent_run.result.all_messages()
 
 
-def to_cli_sync(agent: Agent, handle_after_conversation: Callable[[list[ModelMessage]], Coroutine[None, Any, None]] | None = None):
+def to_cli_sync(agent: Agent, playbook_operator: PlaybookOperator, handle_after_conversation: HandleAfterConversation | None = None):
     return get_event_loop().run_until_complete(
-        to_cli(agent, handle_after_conversation)
+        to_cli(agent, playbook_operator, handle_after_conversation)
     )
 
-async def to_cli(agent: Agent, handle_after_conversation: Callable[[list[ModelMessage]], Coroutine[None, Any, None]] | None = None):
+async def to_cli(agent: Agent, playbook_operator: PlaybookOperator, handle_after_conversation: HandleAfterConversation | None = None):
     prettier_code_blocks()
     console = Console()
     
     exit_code = await run_chat(
         stream=True,
         agent=agent,
+        playbook_operator=playbook_operator,
         console=console,
         code_theme='ansi_dark',
         prog_name='Family Insurance Doc',

@@ -9,9 +9,12 @@ from agent2cli import to_cli_sync
 from pdf_converter import PDFToTxtConverter
 from insurance_agent import InsuranceAgent
 from abstract_agent import AbstractAgent
-from reflector_agent import ReflectorAgent
+from ace import ReflectorAgent, CuratorAgent
+from playbook import PlaybookOperator
 
-reflector_agent = ReflectorAgent()
+playbook_operator = PlaybookOperator()
+reflector_agent = ReflectorAgent(playbook_operator)
+curator_agent = CuratorAgent(playbook_operator)
 
 def main():
     parser = argparse.ArgumentParser(description="家庭保险文档处理工具")
@@ -46,7 +49,7 @@ def main():
     elif args.question:
         # 创建保险代理并回答问题
         agent = InsuranceAgent(map_file, output_directory)     
-        to_cli_sync(agent.agent, handle_after_conversation=handle_after_conversation)
+        to_cli_sync(agent.agent, playbook_operator, handle_after_conversation=handle_after_conversation)
     elif args.abstract:
         # 创建摘要代理并处理所有文档
         agent = AbstractAgent(map_file, output_directory)
@@ -54,11 +57,17 @@ def main():
     else:
         parser.print_help()
 
-async def handle_after_conversation(messages: list[ModelMessage]):
-    """处理每次对话后的消息"""
-    result = await reflector_agent.reflect(messages)
+async def handle_after_conversation(objective: str, messages: list[ModelMessage]):
+    """处理每次对话后的消息
+    Args:
+        objective (str): 对话的目标
+        messages (list[ModelMessage]): 对话中的消息列表
+    """
+    result = await reflector_agent.reflect(objective, messages)
+    curated = await curator_agent.curate(objective, result)
     with open(f"./reflector/{datetime.now().strftime('%Y%m%d%H%M%S')}.json", "w", encoding="utf-8") as f:
         f.write(result.model_dump_json(indent=2, ensure_ascii=False))
+        f.write(curated)
     
 
 if __name__ == "__main__":

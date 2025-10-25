@@ -1,5 +1,5 @@
-import os
 from functools import wraps
+import os
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -32,12 +32,11 @@ class PlaybookOperator:
         return decorator
 
     @ensure_playbook_dir()
-    def create(self, content: str) -> int:
+    def create_policy(self, content: str) -> int:
         """创建策略文件"""
-        """新建策略文件"""
         bullet_id = self.get_next_bullet_id()
         filename = os.path.join(PLAYBOOK_DIR, f'{bullet_id:08d}.txt')
-        with open(filename, 'w') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             f.write(content)
         return self.get_next_bullet_id()
 
@@ -83,7 +82,7 @@ class PlaybookOperator:
         """读取策略文件内容"""
         filename = os.path.join(PLAYBOOK_DIR, f'{bullet_id:08d}.txt')
         if os.path.exists(filename):
-            with open(filename, 'r') as f:
+            with open(filename, 'r', encoding='utf-8') as f:
                 return f.read()
         return None
 
@@ -92,7 +91,7 @@ class PlaybookOperator:
         """修改策略文件内容"""
         filename = os.path.join(PLAYBOOK_DIR, f'{bullet_id:08d}.txt')
         if os.path.exists(filename):
-            with open(filename, 'w') as f:
+            with open(filename, 'w', encoding='utf-8') as f:
                 f.write(content)
             self.update_playbook_list()
             return True
@@ -131,13 +130,10 @@ class PlaybookOperator:
         Returns:
             list[Playbook]: 包含匹配行的Playbook对象列表
         """
-        policies = []
-        if len(self.get_existing_indices()) == 0:
-            return policies
-        
-        rg = ripgrepy.Ripgrepy(query, PLAYBOOK_DIR + "/*.txt")
+        policies = []        
+        rg = ripgrepy.Ripgrepy(query, PLAYBOOK_DIR).glob("*.txt")
         for item in rg.E("utf-8").C(context_lines).json().run().as_dict:
-            bullet_id = int(os.path.basename(item['path'])[:-4])
-            policies.append(Playbook(bullet_id=bullet_id, content=item["line"]['text']))
+            bullet_id = int(os.path.basename(item['data']['path']['text'])[:-4])
+            policies.append(Playbook(bullet_id=bullet_id, content=item['data']["lines"]['text']))
         
         return policies
